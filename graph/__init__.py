@@ -30,11 +30,11 @@ def parse_graph():
 
     if __name__ == 'graph':
         grid_ids = [row[0] for row in query_db('SELECT GridID FROM Grid')]
-        new_table('Graph')
-
+        new_table('Weighted')
+        grid_ids = [1]
         counter = Value('i', 0)
         i = Value('i', len(grid_ids))
-        p = Pool(3, initializer=init, initargs=(counter, i))
+        p = Pool(4, initializer=init, initargs=(counter, i))
         p.map(process_entry, grid_ids)
         p.close()
     return

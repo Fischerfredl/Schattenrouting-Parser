@@ -1,7 +1,8 @@
 import xml.etree.ElementTree as ET
 from progressbar import progress
-from database import new_table, commit_many
-
+from database import new_table, commit_many, commit_db
+from shapely.geometry import Point, MultiPoint
+from matplotlib import pyplot as plt
 
 def parse_kml():
     gebaeude = []
@@ -47,4 +48,35 @@ def parse_kml():
     new_table('Buildings')
     print 'Lege Datenbankeintraege fuer <Buildings> an'
     commit_many('INSERT INTO Buildings(Polygon, Height, HeightGround) VALUES (?, ?, ?)', gebaeude)
+
+    print 'lege Convexe Huelle an'
+    # Lege Convexe Huelle der Gebaeude an
+    points = []
+    for row in gebaeude:
+        for coordinate in row[0].split(';'):
+            c = coordinate.split(',')
+            points.append(Point(float(c[0]), float(c[1])))
+
+    multi = MultiPoint(points)
+    poly = multi.convex_hull
+    buffered = poly.buffer(0.0005)
+    poly_str = ';'.join([str(coord[0]) + ',' + str(coord[1]) for coord in buffered.exterior.coords])
+
+    new_table('BoundsBuildings')
+    commit_db('INSERT INTO BoundsBuildings(Polygon) VALUES (?)', [poly_str])
+
+    '''
+    x = [p.coords.xy[0] for p in points]
+    y = [p.coords.xy[1] for p in points]
+    fig = plt.figure(1, figsize=(5, 5), dpi=90)
+
+    ax = fig.add_subplot(111)
+    plt.scatter(x, y)
+    ax.set_title('Polygon Edges')
+    x, y = poly.exterior.xy
+    plt.plot(x, y)
+    x, y = poly.buffer(0.0005).exterior.xy
+    plt.plot(x, y)
+    plt.show()
+    '''
     return

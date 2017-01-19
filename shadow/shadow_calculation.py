@@ -3,7 +3,7 @@ from shapely.geometry import Polygon
 from shapely.ops import unary_union
 import numpy as np
 from config import bounds
-from database import commit_db, get_buildings, get_grid_info
+from database import commit_many, get_buildings, get_grid_info
 
 const = np.pi / 180
 speedups.enable()
@@ -53,51 +53,17 @@ def building_shadow(building, azimut, elevation):
 def insert_shadow_polygons(grid_id):
     azimut, elevation = get_grid_info(grid_id)
 
-    if elevation == 0.:
-        top_l = str(bounds['north']) + ',' + str(bounds['west'])
-        top_r = str(bounds['north']) + ',' + str(bounds['east'])
-        bot_r = str(bounds['south']) + ',' + str(bounds['east'])
-        bot_l = str(bounds['south']) + ',' + str(bounds['west'])
-        polygon = [top_l, top_r, bot_r, bot_l, top_l]
-        commit_db('INSERT INTO Shadow(GridID, Polygon) VALUES (?, ?)', [grid_id, ';'.join(polygon)])
-    else:
-        polygons = []
-        for bldg in get_buildings():
-            poly = building_shadow(bldg, azimut, elevation)
-            if poly:
-                if poly.is_valid:
-                    polygons.append(building_shadow(bldg, azimut, elevation))
-            else:
-                # print 'One Shadow-Polygon discarded at Date_ID: ' + str(grid_id)
-                pass
+    polygons = []
+    for bldg in get_buildings():
+        poly = building_shadow(bldg, azimut, elevation)
+        if poly:
+            if poly.is_valid:
+                poly_str = ';'.join(str(c[0]) + ',' + str(c[1]) for c in list(poly.exterior.coords))
+                polygons.append((grid_id, poly_str))
+        else:
+            # print 'One Shadow-Polygon discarded at Date_ID: ' + str(grid_id)
+            pass
 
-        try:
-            union = unary_union(polygons)
-            shadow_polys = []
-            if union.geom_type == 'Polygon':
-                print '1'
-                shadow_polys = [list(union.exterior.coords)]
-            elif union.geom_type == 'MultiPolygon':
-                for p in union:
-                    shadow_polys.append(list(p.exterior.coords))
-
-            for p in shadow_polys:
-                coords = []
-                for c in p:
-                    coords.append(','.join([str(c[0]), str(c[1])]))
-                commit_db('INSERT INTO Shadow(GridID, Polygon) VALUES (?, ?)', [grid_id, ';'.join(coords)])
-
-            # print 'Completion of Grid_ID: ' + str(grid_id)
-        except ValueError as e:
-            # print '-'*10+'Unknown Error at Building Shadow Polygons for Date_ID: ' + str(grid_id) + '-'*10
-            # print e.message
-            '''
-            for p in polygons:
-                x, y = p.exterior.xy
-                fig = plt.figure(1, figsize=(5, 5), dpi=90)
-                ax = fig.add_subplot(111)
-                ax.plot(x, y)
-                ax.set_title('Polygon Edges')
-            plt.show()
-            '''
+    commit_many('INSERT INTO Shadow(GridID, Polygon) VALUES (?, ?)', polygons)
+    # print 'Completion of Grid_ID: ' + str(grid_id)
     return

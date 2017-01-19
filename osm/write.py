@@ -3,7 +3,7 @@ from config import bounds
 
 
 def write(nodes, edges):
-    new_table('GraphShortest')
+    new_table('Graph')
     new_table('Nodes')
     new_table('Bounds')
 
@@ -27,7 +27,7 @@ def write(nodes, edges):
             edge_array.append((start, end, dist))
 
     # Lege Daten an
-    commit_many('INSERT INTO GraphShortest(FromID, ToID, Costs) VALUES (?, ?, ?)', edge_array)
+    commit_many('INSERT INTO Graph(FromID, ToID, Costs) VALUES (?, ?, ?)', edge_array)
 
     # Store Bounds -----------------------------------------------------------------------------------------------------
     commit_db('INSERT INTO Bounds(Direction, Value) VALUES(?, ?)', ['North', bounds['north']])
