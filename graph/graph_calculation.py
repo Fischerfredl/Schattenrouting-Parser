@@ -11,7 +11,6 @@ speedups.enable()
 def get_weight(edge, nodes, polygons, bb):
     line = LineString([nodes[edge[1]], nodes[edge[2]]])
     if line.intersection(bb).is_empty:
-        print 'Exit on out of scope'
         return 10
 
     shady_lines = []
@@ -19,13 +18,9 @@ def get_weight(edge, nodes, polygons, bb):
         try:
             inter = line.intersection(Polygon(poly))
             if not inter.is_empty:
-                shady_lines.append(inter)
-
-            shady = unary_union(shady_lines)
-            if shady.geom_type == 'LineString':
-                if shady.length == line.length:
-                    print 'exit on full shady'
+                if inter.length == line.length:
                     return 1
+                shady_lines.append(inter)
         except TopologicalError:
             polygons.remove(poly)
     shadow_length = 0.
@@ -35,7 +30,6 @@ def get_weight(edge, nodes, polygons, bb):
     elif shady.geom_type == 'MultiLineString':
         for l in shady:
             shadow_length += l.length
-    print 'full calc'
     return 10.-(9.*(shadow_length / line.length))
 
 
@@ -44,14 +38,12 @@ def insert_graph(grid_id):
     shortest, nodes = get_graph()
     bb = Polygon(get_bounds_buildings())
 
+    
+
     data = []
-    i = 0
-    i_max = len(shortest)
     for edge in shortest:
         factor = get_weight(edge, nodes, polygons, bb)
         data.append((grid_id, edge[0], factor))
-        i += 1
-        print i
 
     commit_many('INSERT INTO Weighted(GridID, GraphID, Factor) VALUES (?, ?, ?)', data)
     print 'Finished GridID: ' + str(grid_id)
