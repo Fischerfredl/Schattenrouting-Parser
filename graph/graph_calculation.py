@@ -1,5 +1,5 @@
 from database import get_polygons, get_graph, commit_many, get_bounds_buildings
-from shapely.geometry import Polygon, LineString
+from shapely.geometry import Polygon, LineString, MultiPolygon
 from shapely.ops import unary_union
 from shapely.geos import TopologicalError
 from shapely import speedups
@@ -8,43 +8,46 @@ from progressbar import progress
 speedups.enable()
 
 
-def get_weight(edge, nodes, polygons, bb):
+def get_weight(edge, nodes, polygons, bb=get_bounds_buildings()):
     line = LineString([nodes[edge[1]], nodes[edge[2]]])
-    if line.intersection(bb).is_empty:
+
+    if line.intersection(Polygon(bb)).is_empty:
         return 10
 
-    shady_lines = []
-    for poly in polygons:
-        try:
-            inter = line.intersection(Polygon(poly))
-            if not inter.is_empty:
-                if inter.length == line.length:
-                    return 1
-                shady_lines.append(inter)
-        except TopologicalError:
-            polygons.remove(poly)
+    line_length = line.length
     shadow_length = 0.
-    shady = unary_union(shady_lines)
-    if shady.geom_type == 'LineString':
-        shadow_length = shady.length
-    elif shady.geom_type == 'MultiLineString':
-        for l in shady:
-            shadow_length += l.length
+    try:
+        for poly in polygons:
+            inter = line.intersection(poly)
+            shadow_length += inter.length
+            if shadow_length == line_length:
+                break
+    except TopologicalError as e:
+        print 'Intersection Calculation failed at Graph-ID: ' + str(edge[0])
+        print e.message
+        return 10
     return 10.-(9.*(shadow_length / line.length))
 
 
 def insert_graph(grid_id):
-    polygons = get_polygons(grid_id)
-    shortest, nodes = get_graph()
-    bb = Polygon(get_bounds_buildings())
+    try:
+        polygons = unary_union(get_polygons(grid_id))
+        if polygons.geom_type != 'MultiPolygon':
+            polygons = MultiPolygon(polygons)
+        print str(grid_id) + ': Polygons merged'
+        shortest, nodes = get_graph()
 
-    
-
-    data = []
-    for edge in shortest:
-        factor = get_weight(edge, nodes, polygons, bb)
-        data.append((grid_id, edge[0], factor))
-
-    commit_many('INSERT INTO Weighted(GridID, GraphID, Factor) VALUES (?, ?, ?)', data)
-    print 'Finished GridID: ' + str(grid_id)
+        data = []
+        # i = 0
+        for edge in shortest:
+            factor = get_weight(edge, nodes, polygons)
+            data.append((grid_id, edge[0], factor))
+            # i += 1
+            # if i % 100 == 0:
+            #     print str(grid_id) + ': ' + str(i)
+        commit_many('INSERT INTO Weighted(GridID, GraphID, Factor) VALUES (?, ?, ?)', data)
+        print 'Finished GridID: ' + str(grid_id)
+    except ValueError as e:
+        print 'Failed at Grid-ID: ' + str(grid_id)
+        print e.message
     return

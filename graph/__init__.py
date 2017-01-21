@@ -27,13 +27,14 @@ def process_entry(grid_id):
 
 
 def parse_graph():
-
     if __name__ == 'graph':
         grid_ids = [row[0] for row in query_db('SELECT GridID FROM Grid')]
         new_table('Weighted')
+
         counter = Value('i', 0)
         i = Value('i', len(grid_ids))
         p = Pool(4, initializer=init, initargs=(counter, i))
         p.map(process_entry, grid_ids)
         p.close()
+
     return

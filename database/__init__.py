@@ -1,6 +1,7 @@
 import sqlite3
 from config import database
 import os
+from shapely.geometry import Polygon
 
 
 def commit_db(sql, args=()):
@@ -100,7 +101,10 @@ def get_grid_info(grid_id):
 def get_polygons(grid_id):
     polygons = []
     for row in query_db('SELECT Polygon FROM Shadow WHERE GridID = ?', [grid_id]):
-        polygons.append([(float(coordinate.split(',')[0]), float(coordinate.split(',')[1])) for coordinate in row[0].split(';')])
+        poly = Polygon([(float(coordinate.split(',')[0]), float(coordinate.split(',')[1]))
+                        for coordinate in row[0].split(';')])
+        if poly.is_valid:
+            polygons.append(poly)
     return polygons
 
 

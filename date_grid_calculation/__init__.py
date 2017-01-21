@@ -1,4 +1,4 @@
-from database import query_db, get_polygons, commit_db, commit_many
+from database import query_db, commit_many
 import numpy as np
 from progressbar import progress
 
@@ -9,12 +9,7 @@ def closest_node(node, nodes):
     return nodes[np.argmin(dist_2)]
 
 
-def grid_correction():
-    grid_ids = [row[0] for row in query_db('SELECT GridID FROM Grid')]
-    for grid_id in grid_ids:
-        if not get_polygons(grid_id):
-            commit_db('DELETE FROM Grid WHERE GridID = ?', [grid_id])
-
+def date_grid_calculation():
     dates = query_db('SELECT DateID, Azimut, Elevation FROM Date')
     grid = [(row[0], row[1]) for row in query_db('SELECT Azimut, Elevation FROM Grid')]
     data = []

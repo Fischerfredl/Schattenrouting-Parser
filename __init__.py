@@ -8,7 +8,7 @@ from timeit import default_timer as timer
 from analysis import run_analysis, plot_grid, plot_dates
 from grid import parse_grid
 from graph import parse_graph
-from grid_correction import grid_correction
+from date_grid_calculation import date_grid_calculation
 
 
 def linebreak():
@@ -77,10 +77,10 @@ def graph():
     return
 
 
-def correct_grid():
+def calc_date_grid():
     print 'Start: Correction of Grid'
     start = timer()
-    grid_correction()
+    date_grid_calculation()
     end = timer()
     print 'Tables <Grid> and <Dates> updated'
     print 'End: Correction of Grid. Took %s hours' % str(timedelta(seconds=end - start))
@@ -88,22 +88,22 @@ def correct_grid():
 
 if __name__ == '__main__':
 
-    # linebreak()
-    # osm()
-    # linebreak()
-    # kml()
-    # linebreak()
-    # date()
-    # linebreak()
-    # grid(24)
-    # linebreak()
-    # shadow()
-    # linebreak()
-    # correct_grid()
-    # linebreak()
+    linebreak()
+    osm()
+    linebreak()
+    kml()
+    linebreak()
+    date()
+    linebreak()
+    grid(12)
+    linebreak()
+    shadow()
+    linebreak()
+    calc_date_grid()
+    linebreak()
     graph()
     linebreak()
 
     # run_analysis()
-    plot_grid()
+    # plot_grid()
     # plot_dates()
